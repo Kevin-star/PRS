@@ -209,57 +209,6 @@ def compute_independent_cascade(graph: nx.Graph, users: List[int], mask: List[in
     return len(active), active
 
 
-
-def find_reverse_set(G:nx.Graph, root:int, rumor: List[int]):
-    level_nodes = {root: 0}
-    current_level = [root]
-    level = 1
-    while current_level:
-        next_level = []
-        for node in current_level:
-            resuccessors = set(G.predecessors(node)) - set(level_nodes.keys())
-            level_nodes.update({s: level for s in resuccessors})
-            next_level.extend(resuccessors)
-        current_level = next_level
-        if set(current_level)&set(rumor):
-            break
-        level += 1
-    return list(set(level_nodes.keys())-set(rumor))
-    # return list(set(level_nodes.keys())-(set(rumor)&set(level_nodes.keys())))
-
-
-
-
-def generate_randomreverse_set(G:nx.Graph, root:int, rumor: List[int]):
-    np.random.seed(42)
-    popo =[0.1,0.05,0.01]
-    level_nodes = {root: 0}
-    current_level = [root]
-    level = 1
-    while current_level:
-        next_level = []
-        for node in current_level:
-            resuccessors = set(G.predecessors(node)) - set(level_nodes.keys())
-            for nodecur in resuccessors:
-                if np.random.uniform(0, 1) < 1/G.in_degree(node):
-                   level_nodes[nodecur]=level
-                   next_level.append(nodecur)
-        current_level = next_level
-        if set(current_level)&set(rumor):
-            break
-        level += 1
-    return list(level_nodes.keys())
-
-
-
-
-def count_elements_in_sets(sets):
-
-    all_elements = [element for s in sets for element in s]
-   
-    element_counts = Counter(all_elements)
-
-    sorted_counts = sorted(element_counts.items(), key=lambda x: x[1], reverse=True)
     
     return sorted_counts
 # datasets = ['StackOverflow']
@@ -280,87 +229,7 @@ for R in FinalR:
         for KR in SeedsizeR:
             for K in Seedsize:   
                 
-                Seedset=[]
-                Upperbound = []
-                Upperbound1 = []
-                rumor_nodes = []
-                # num_nodes=10
-                pred_graph = read_graph_from_edgefile(f'data/SEALDataset/{dataset}/T60_pred_edge1.pt')
-               
-                out_degree = list(pred_graph.out_degree)
-                tmpQ = sorted(out_degree, key = lambda x: x[1], reverse = True)
-                for i in range(0,KR):
-                    rumor_nodes.append(tmpQ[i][0])
-              
-                subgraphs = generate_snapshots(pred_graph, R, 42)
-                [Rumorspread, infectnodes] = forward_influence_sketch(subgraphs,rumor_nodes)
-                
-                start_time = time.time()       
-                ReverseSet = []
-                OSeedset = []
-                for w in range(0,R):
-                    for node in infectnodes[w]: 
-                        ReverseSet.append(find_reverse_set(subgraphs[w],node,rumor_nodes))                    
-                for w in range(0,K):
-                    counter = Counter()
-                    for collection in ReverseSet:
-                        counter.update(collection)
-                    Seednode=counter.most_common()[0][0]
-                    OSeedset.append(Seednode)
-                    ReverseSet = [a for a in  ReverseSet if Seednode not in a] 
-                time0 = time.time() - start_time 
-                MonteOPBRR=compute_montesimu_spread(pred_graph, rumor_nodes, OSeedset)
-                
-                
-                start_time = time.time()       
-                ReverseSet = []
-                for w in range(0,R):
-                    for node in infectnodes[w]: 
-                        ReverseSet.append(find_reverse_set(subgraphs[w],node,rumor_nodes))    
- 
-                Q = count_elements_in_sets(ReverseSet)
-                tmpdic = dict(Q)
-                Seednode=Q[0][0]
-                Seedset.append(Seednode)
-                Q = Q[1:]
-                for _ in range(K-1): 
-                    
-                    check, node_lookup = False, 0
-                    
-                    alreadyvisited = []
-                    
-                    while not check:
-
-                        node_lookup += 1
-
-                        current = Q[0][0]
-                        
-                        if current not in alreadyvisited:
-                            tmp = tmpdic[Q[0][0]]
-                            for item in ReverseSet[:]:
-                                
-                                if current in item:
-                                    if (set(item)&set(Seedset)):
-                                        tmp -= 1
-                            my_list = list( Q[0])
-                            my_list[1] = tmp
-                            Q[0] = tuple(my_list)
-
-                        Q = sorted(Q, key = lambda x: x[1], reverse = True)
-
-                        alreadyvisited.append(current)
-
-                        check = (Q[0][0] == current)
-                    
-                    Seedset.append(Q[0][0])
-                    Q = Q[1:]     
-  
-                time1 = time.time() - start_time 
-
-                MontePBRR=compute_montesimu_spread(pred_graph, rumor_nodes, Seedset)
-                # MBrumor=forward_influence_sketchMCIC(subgraphs,rumor_nodes, Seedset)[0]
-
-                
+                                  
                 
                 data={'Time0':time0, 'Time1':time1, 'Time2':time2, 'Time3':time3, 'Time4':time4, 'Time5':time5, 'Time6':time6, 'MBOrumor':MonteOPBRR, 'MBrumor':MontePBRR, 'TMBrumor': TMontePBRR, 'RandomBrumor': MonteRandom, 'MaxdBrumor':MonteMaxd, 'MaxCCBrumor': MonteCC, 'MaxKcoreBrumor': MonteKcore}
                 # data={'Time1':time1,'MRS':MBrumor}
